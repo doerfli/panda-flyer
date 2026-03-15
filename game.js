@@ -45,14 +45,37 @@ let audioCtx;
 let synthTimeout;
 let bgmPlaybackRate = 1.0;
 let currentNoteIndex = 0;
-const DURATION = 0.15; // length of each note
-// 8-bit arpeggio melody (C Maj, G Maj, A Min, F Maj)
-const melody = [
-    261.6, 329.6, 392.0, 523.3, 392.0, 329.6,
-    196.0, 246.9, 293.7, 392.0, 293.7, 246.9,
-    220.0, 261.6, 329.6, 440.0, 329.6, 261.6,
-    174.6, 220.0, 261.6, 349.2, 261.6, 220.0
+const DURATION = 0.5; // longer notes for a calm, floating feel
+
+// Level 1: Calm, dreamy (0-49 Punkte)
+const melodyCalm = [
+    261.6, 329.6, 392.0, 523.3,  // C4 E4 G4 C5
+    329.6, 392.0, 523.3, 392.0,  // E4 G4 C5 G4  
+    261.6, 329.6, 392.0, 329.6,  // C4 E4 G4 E4
+    196.0, 261.6, 329.6, 261.6,  // G3 C4 E4 C4
 ];
+
+// Level 2: Lively, upbeat (50-149 Punkte)
+const melodyLively = [
+    392.0, 523.3, 659.3, 784.0,  // G4 C5 E5 G5
+    659.3, 523.3, 392.0, 523.3,  // E5 C5 G4 C5
+    523.3, 392.0, 329.6, 392.0,  // C5 G4 E4 G4
+    329.6, 261.6, 329.6, 392.0,  // E4 C4 E4 G4
+];
+
+// Level 3: Joyful, cheerful (150+ Punkte)
+const melodyJoyful = [
+    523.3, 659.3, 784.0, 1046.5, // C5 E5 G5 C6
+    784.0, 659.3, 784.0, 1046.5, // G5 E5 G5 C6
+    659.3, 784.0, 659.3, 523.3,  // E5 G5 E5 C5
+    392.0, 523.3, 659.3, 784.0,  // G4 C5 E5 G5
+];
+
+function getCurrentMelody() {
+    if (score >= 150) return melodyJoyful;
+    if (score >= 50) return melodyLively;
+    return melodyCalm;
+}
 
 function initAudio() {
     if (!audioCtx) {
@@ -63,34 +86,57 @@ function initAudio() {
     }
 }
 
-function playSynthNote() {
-    if (currentState !== STATE.PLAYING && currentState !== STATE.STARTING) return;
-    
-    if (!audioCtx || audioCtx.state === 'suspended') return;
-    
-    let freq = melody[currentNoteIndex % melody.length];
-    currentNoteIndex++;
-    
+let nextNoteTime = 0.0; // Audio-time of next scheduled note
+let schedulerTimer = null;
+
+function scheduleNote(freq, time) {
     let osc = audioCtx.createOscillator();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    osc.type = 'triangle'; // Triangle is much softer, less harsh than square
+    osc.frequency.setValueAtTime(freq, time);
     
     let gainNode = audioCtx.createGain();
-    
-    // Smooth attack and release to prevent clipping/popping
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.02); // Louder BGM
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + DURATION);
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(0.3, time + 0.08); // slow gentle attack
+    gainNode.gain.exponentialRampToValueAtTime(0.001, time + DURATION * 0.9);
     
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-    
-    osc.start(audioCtx.currentTime);
-    osc.stop(audioCtx.currentTime + DURATION);
-    
-    let nextTimeMs = (DURATION * 1000) / bgmPlaybackRate;
-    synthTimeout = setTimeout(playSynthNote, nextTimeMs);
+    osc.start(time);
+    osc.stop(time + DURATION);
 }
+
+function runScheduler() {
+    if (!audioCtx || currentState === STATE.GAMEOVER || currentState === STATE.IDLE) {
+        schedulerTimer = null;
+        return;
+    }
+    
+    const SCHEDULE_AHEAD = 0.2;
+    const currentMelody = getCurrentMelody();
+    const noteDuration = DURATION / bgmPlaybackRate;
+    
+    while (nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
+        const freq = currentMelody[currentNoteIndex % currentMelody.length];
+        scheduleNote(freq, nextNoteTime);
+        currentNoteIndex++;
+        nextNoteTime += noteDuration;
+    }
+    
+    schedulerTimer = setTimeout(runScheduler, 50);
+}
+
+function startMusic() {
+    if (schedulerTimer) clearTimeout(schedulerTimer);
+    currentNoteIndex = 0;
+    nextNoteTime = audioCtx.currentTime + 0.05; // small delay to allow resume
+    bgmPlaybackRate = 1.0;
+    runScheduler();
+}
+
+function stopMusic() {
+    if (schedulerTimer) { clearTimeout(schedulerTimer); schedulerTimer = null; }
+}
+
 
 // Sound Effects
 function playCoinSound() {
@@ -343,11 +389,12 @@ function initGame() {
     for(let i=0; i<10; i++) birds.push(spawnBird());
     gameTime = 0;
 
-    // Reset and start 8-Bit music
-    if (synthTimeout) clearTimeout(synthTimeout);
+    // Reset and start 8-Bit music only after AudioContext is fully running
+    stopMusic();
     bgmPlaybackRate = 1.0;
-    currentNoteIndex = 0;
-    playSynthNote();
+    audioCtx.resume().then(() => {
+        startMusic();
+    });
 
     currentState = STATE.STARTING;
     uiStartScreen.classList.add('hidden');
@@ -381,7 +428,7 @@ function endGame() {
     }
     
     // Stop music
-    if (synthTimeout) clearTimeout(synthTimeout);
+    stopMusic();
     
     playLandSound(); // Lande-"Plopp"
     
@@ -449,10 +496,9 @@ function update(dt) {
     if (altitude <= 0) { altitude = 0; endGame(); }
     uiAltitude.innerText = Math.ceil(altitude);
 
-    // Update music playback speed based on altitude inverse (1.0 => 2.5)
-    // 1000m = base speed (1.0). 0m = max speed (e.g., 2.5x)
+    // Slightly speed up music as altitude drops – very subtle (1.0x → 1.3x max)
     if (currentState === STATE.PLAYING) {
-        bgmPlaybackRate = 1.0 + (1.5 * ((INITIAL_ALTITUDE - altitude) / INITIAL_ALTITUDE));
+        bgmPlaybackRate = 1.0 + (0.3 * ((INITIAL_ALTITUDE - altitude) / INITIAL_ALTITUDE));
     }
 
     // Coins Logic
