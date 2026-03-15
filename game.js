@@ -373,6 +373,8 @@ function initGame() {
     requestAnimationFrame(gameLoop);
 }
 
+let finalScore = 0;
+
 function endGame() {
     if (currentState === STATE.GAMEOVER) return;
     currentState = STATE.GAMEOVER;
@@ -389,9 +391,12 @@ function endGame() {
     else if (speed > 5)  {                     endTitle.innerText = `Stolper-Landung! Gesamt: ${score} Pkt`; }
     else                 {                     endTitle.innerText = `Sichere Landung! Gesamt: ${score} Pkt`; }
 
+    finalScore = score + landingScore;
+
     stopMusic();
     playLandSound();
     draw();
+    onGameOver();
 }
 
 // ===== UPDATE =====
@@ -711,3 +716,83 @@ altitude = INITIAL_ALTITUDE;
 clouds = [];
 for (let i = 0; i < 20; i++) clouds.push(spawnCloud());
 draw();
+
+// ===== HIGHSCORE SYSTEM =====
+const RANDOM_NAMES = [
+    'FliegenderBambus', 'PandaKaiser', 'BambusNinja', 'WolkenPanda',
+    'FallschirmBär', 'HimmelsPanda', 'PandaExpress', 'BlauerBambus',
+    'ZenMeister', 'WuschelbärMax', 'PandaPilot', 'SturzflugPanda',
+    'KunfuBambus', 'LuftpandaLeo', 'NebelpandaNils', 'TaifunBär',
+    'GleitschirmGuru', 'WolkenkratzerPa', 'FreifallFrieda', 'SchwerelosKai'
+];
+
+function randomName() {
+    const base = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
+    const num  = Math.floor(Math.random() * 99) + 1;
+    return `${base}${num}`;
+}
+
+const elPlayerName  = document.getElementById('player-name');
+const elBtnSave     = document.getElementById('btn-save');
+const elSaveStatus  = document.getElementById('save-status');
+const elHsBody      = document.getElementById('hs-body');
+
+async function fetchScores(highlightName) {
+    try {
+        const res  = await fetch('/api/scores');
+        const rows = await res.json();
+        renderScores(rows, highlightName);
+    } catch {
+        elHsBody.innerHTML = '<tr><td colspan="4" class="hs-loading">Verbindung zum Server fehlt</td></tr>';
+    }
+}
+
+function renderScores(rows, highlightName) {
+    if (!rows.length) {
+        elHsBody.innerHTML = '<tr><td colspan="4" class="hs-loading">Noch keine Einträge</td></tr>';
+        return;
+    }
+    elHsBody.innerHTML = rows.map(r => {
+        const hl = highlightName && r.name === highlightName ? ' class="hs-highlight"' : '';
+        return `<tr${hl}><td>${r.rank}</td><td>${escHtml(r.name)}</td><td>${r.score}</td><td>${r.date}</td></tr>`;
+    }).join('');
+}
+
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function saveScore(name, scoreVal) {
+    elBtnSave.disabled = true;
+    elSaveStatus.textContent = 'Speichere…';
+    try {
+        const res  = await fetch('/api/scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, score: scoreVal })
+        });
+        const rows = await res.json();
+        elSaveStatus.textContent = '✅ Gespeichert!';
+        elBtnSave.disabled = true; // prevent double-save
+        renderScores(rows, name);
+    } catch {
+        elSaveStatus.textContent = '❌ Fehler – Server erreichbar?';
+        elBtnSave.disabled = false;
+    }
+}
+
+function onGameOver() {
+    elPlayerName.value = randomName();
+    elSaveStatus.textContent = '';
+    elBtnSave.disabled = false;
+    fetchScores();
+}
+
+elBtnSave.addEventListener('click', () => {
+    const name = elPlayerName.value.trim() || randomName();
+    saveScore(name, finalScore);
+});
+
+elPlayerName.addEventListener('keydown', e => {
+    if (e.key === 'Enter') elBtnSave.click();
+});

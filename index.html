@@ -32,10 +32,31 @@
             </div>
             
             <div id="game-over-screen" class="screen hidden">
-                <div class="glass-panel success">
+                <div class="glass-panel game-over-panel">
                     <h2 id="end-title">Sichere Landung!</h2>
                     <p id="end-desc">Der Panda hat wieder festen Boden unter den Füßen.</p>
-                    <button id="btn-restart" class="btn">Nochmal fliegen</button>
+
+                    <div id="score-entry">
+                        <div class="name-input-row">
+                            <input id="player-name" class="name-input" type="text" maxlength="32" placeholder="Dein Name…" />
+                            <button id="btn-save" class="btn btn-save">💾 Speichern</button>
+                        </div>
+                        <p id="save-status" class="save-status"></p>
+                    </div>
+
+                    <div id="highscore-list">
+                        <h3 class="hs-title">🏆 Top 10</h3>
+                        <table class="hs-table">
+                            <thead>
+                                <tr><th>#</th><th>Name</th><th>Punkte</th><th>Datum</th></tr>
+                            </thead>
+                            <tbody id="hs-body">
+                                <tr><td colspan="4" class="hs-loading">Lade…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button id="btn-restart" class="btn" style="margin-top:1.5rem;">Nochmal fliegen</button>
                 </div>
             </div>
         </div>
