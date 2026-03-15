@@ -34,12 +34,25 @@ const FALL_SPEED = 25;
 let clouds = [];
 let coins = [];
 let diamonds = []; // New diamonds array
+let birds = []; // New birds array
+let gameTime = 0;
 let score = 0;
 let keys = { ArrowLeft: false, ArrowRight: false, a: false, d: false };
 let targetX = 0;
 
 // Web Audio API Synth Settings
 let audioCtx;
+let synthTimeout;
+let bgmPlaybackRate = 1.0;
+let currentNoteIndex = 0;
+const DURATION = 0.15; // length of each note
+// 8-bit arpeggio melody (C Maj, G Maj, A Min, F Maj)
+const melody = [
+    261.6, 329.6, 392.0, 523.3, 392.0, 329.6,
+    196.0, 246.9, 293.7, 392.0, 293.7, 246.9,
+    220.0, 261.6, 329.6, 440.0, 329.6, 261.6,
+    174.6, 220.0, 261.6, 349.2, 261.6, 220.0
+];
 
 function initAudio() {
     if (!audioCtx) {
@@ -48,6 +61,35 @@ function initAudio() {
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
+}
+
+function playSynthNote() {
+    if (currentState !== STATE.PLAYING && currentState !== STATE.STARTING) return;
+    
+    if (!audioCtx || audioCtx.state === 'suspended') return;
+    
+    let freq = melody[currentNoteIndex % melody.length];
+    currentNoteIndex++;
+    
+    let osc = audioCtx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    
+    let gainNode = audioCtx.createGain();
+    
+    // Smooth attack and release to prevent clipping/popping
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.02); // Louder BGM
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + DURATION);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + DURATION);
+    
+    let nextTimeMs = (DURATION * 1000) / bgmPlaybackRate;
+    synthTimeout = setTimeout(playSynthNote, nextTimeMs);
 }
 
 // Sound Effects
@@ -171,6 +213,28 @@ function playLandSound() {
     osc2.stop(t + 0.2);
 }
 
+function playHitSound() {
+    if (!audioCtx || audioCtx.state === 'suspended') return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    // "Aua/Zonk" - Discordant drop
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, t);
+    osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+    
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(1.5, t + 0.02); // Loud hit sound
+    gain.gain.linearRampToValueAtTime(0, t + 0.15);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start(t);
+    osc.stop(t + 0.15);
+}
+
 const player = {
     x: gameWidth / 2, y: 250, vx: 0,
     width: 60, height: 80,
@@ -233,6 +297,21 @@ function spawnDiamond(avoidCoins) {
     };
 }
 
+function spawnBird(yOverride) {
+    let x = Math.random() * (gameWidth - 200) + 100; // Keep away from edges
+    let y = yOverride !== undefined ? yOverride : gameHeight + Math.random() * (INITIAL_ALTITUDE * 9);
+    return {
+        baseX: x,
+        x: x,
+        y: y,
+        range: 150 + Math.random() * 250, // flies 150-400px left/right
+        speed: 1.0 + Math.random() * 1.5, // slightly slower oscillation for larger sweeps
+        timeOffset: Math.random() * Math.PI * 2,
+        hit: false,
+        size: 35 // larger size
+    };
+}
+
 function initGame() {
     altitude = INITIAL_ALTITUDE;
     player.x = gameWidth / 2;
@@ -258,6 +337,17 @@ function initGame() {
     diamonds = [];
     // Spawn exactly 10 diamonds scattered across the drop
     for(let i=0; i<10; i++) diamonds.push(spawnDiamond(true));
+
+    birds = [];
+    // Spawn exactly 10 birds scattered
+    for(let i=0; i<10; i++) birds.push(spawnBird());
+    gameTime = 0;
+
+    // Reset and start 8-Bit music
+    if (synthTimeout) clearTimeout(synthTimeout);
+    bgmPlaybackRate = 1.0;
+    currentNoteIndex = 0;
+    playSynthNote();
 
     currentState = STATE.STARTING;
     uiStartScreen.classList.add('hidden');
@@ -290,12 +380,16 @@ function endGame() {
         else endTitle.innerText = `Sichere Landung! Gesamt: ${score} Pkt`;
     }
     
+    // Stop music
+    if (synthTimeout) clearTimeout(synthTimeout);
+    
     playLandSound(); // Lande-"Plopp"
     
     draw();
 }
 
 function update(dt) {
+    gameTime += dt;
     if (currentState === STATE.STARTING) {
         plane.x += plane.vx * dt;
         
@@ -355,6 +449,12 @@ function update(dt) {
     if (altitude <= 0) { altitude = 0; endGame(); }
     uiAltitude.innerText = Math.ceil(altitude);
 
+    // Update music playback speed based on altitude inverse (1.0 => 2.5)
+    // 1000m = base speed (1.0). 0m = max speed (e.g., 2.5x)
+    if (currentState === STATE.PLAYING) {
+        bgmPlaybackRate = 1.0 + (1.5 * ((INITIAL_ALTITUDE - altitude) / INITIAL_ALTITUDE));
+    }
+
     // Coins Logic
     for (let i = coins.length - 1; i >= 0; i--) {
         let coin = coins[i];
@@ -406,6 +506,28 @@ function update(dt) {
 
         // We don't splice uncollected diamonds, just let them fall off screen
         // as there are precisely 10.
+    }
+    
+    // Birds Logic
+    for (let i = birds.length - 1; i >= 0; i--) {
+        let bird = birds[i];
+        
+        bird.y -= 250 * dt; 
+        // Oscillate left/right based on time
+        bird.x = bird.baseX + Math.sin(gameTime * bird.speed + bird.timeOffset) * bird.range;
+        
+        if (!bird.hit) {
+            const dx = player.x - bird.x;
+            const dy = player.y - bird.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 60) { // Collision radius increased for larger birds
+                bird.hit = true;
+                score -= 50; 
+                uiScore.innerText = score;
+                playHitSound(); // Aua
+            }
+        }
     }
     
     // Spawn coins (~10 per 100m)
@@ -522,6 +644,76 @@ function draw() {
             
             ctx.restore();
         }
+    });
+
+    // Draw Birds
+    birds.forEach(bird => {
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        
+        // Determine facing direction based on current velocity over time (derivative of sin is cos)
+        const isFlyingRight = Math.cos(gameTime * bird.speed + bird.timeOffset) > 0;
+        if (!isFlyingRight) {
+            ctx.scale(-1, 1);
+        }
+        
+        ctx.fillStyle = bird.hit ? '#ef4444' : '#5c4033'; // Hit turns red, otherwise dark brown
+        
+        const flapDir = Math.sin(gameTime * bird.speed * 8); // Flapping animation -1 to 1
+        
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(-15, 0);
+        ctx.lineTo(-35, -15);
+        ctx.lineTo(-35, 15);
+        ctx.fill();
+
+        // Bird body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 25, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head
+        ctx.beginPath();
+        ctx.arc(20, -3, 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Beak
+        ctx.fillStyle = '#fbbf24'; // Yellow beak
+        ctx.beginPath();
+        ctx.moveTo(25, -3);
+        ctx.lineTo(40, -1);
+        ctx.lineTo(25, 5);
+        ctx.fill();
+        
+        // Eye
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(23, -5, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(24, -5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wings (front and back) -> depends on flap
+        // Back Wing
+        ctx.fillStyle = bird.hit ? '#b91c1c' : '#3e2723'; // Darker brown for contrast
+        ctx.beginPath();
+        ctx.moveTo(5, -5);
+        ctx.lineTo(-10, -5);
+        ctx.lineTo(-5, -40 * flapDir - 10);
+        ctx.fill();
+        
+        // Front Wing
+        ctx.fillStyle = bird.hit ? '#f87171' : '#795548'; // Lighter brown
+        ctx.beginPath();
+        ctx.moveTo(5, 5);
+        ctx.lineTo(-15, 5);
+        ctx.lineTo(-10, 30 * flapDir + 10);
+        ctx.fill();
+
+        ctx.restore();
     });
 
     if (altitude < 100) {
