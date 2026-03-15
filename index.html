@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panda fliegt</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- UI Layer -->
+        <div id="ui-layer">
+            <div id="start-screen" class="screen">
+                <div class="glass-panel">
+                    <h1>PANDA<br>FLIEGT</h1>
+                    <p>Steuere den Panda mit den ← → Tasten aus 2000m Höhe sicher auf den Boden.</p>
+                    <button id="btn-start" class="btn">Sprung wagen</button>
+                </div>
+            </div>
+            
+            <div id="hud" class="hidden">
+                <div class="altitude-box">
+                    <span id="altitude">1000</span><span class="unit">m</span>
+                </div>
+                <div class="score-box">
+                    <div class="coin-icon"></div>
+                    <span id="score">0</span>
+                </div>
+            </div>
+            
+            <div id="game-over-screen" class="screen hidden">
+                <div class="glass-panel success">
+                    <h2 id="end-title">Sichere Landung!</h2>
+                    <p id="end-desc">Der Panda hat wieder festen Boden unter den Füßen.</p>
+                    <button id="btn-restart" class="btn">Nochmal fliegen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
