@@ -48,7 +48,7 @@ let parachuteDeployed = false;
 let freefallTimer     = 0;
 let cameraY           = 0;
 let targetX           = 0;
-let keys = { ArrowLeft: false, ArrowRight: false, a: false, d: false };
+let keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false, a: false, d: false, w: false, s: false };
 
 window.addEventListener('keydown', e => { if (e.key in keys) keys[e.key] = true; });
 window.addEventListener('keyup',   e => { if (e.key in keys) keys[e.key] = false; });
@@ -365,7 +365,7 @@ function spawnDrone(index, rubyIndex, angleOffset) {
     const ruby = rubies[rubyIndex];
     if (!ruby) return null;
     
-    const orbitRadius = 110;  // Slightly reduced distance
+    const orbitRadius = 100;  // Reduced to 100px as requested
     const droneRadius = 22;
     
     const x = ruby.x + Math.cos(angleOffset) * orbitRadius;
@@ -494,7 +494,24 @@ function update(dt) {
     // Velocity caps
     const vel = pandaBody.velocity;
     if (Math.abs(vel.x) > MAX_VX) Body.setVelocity(pandaBody, { x: Math.sign(vel.x) * MAX_VX, y: vel.y });
-    if (vel.y > MAX_VY)           Body.setVelocity(pandaBody, { x: pandaBody.velocity.x, y: MAX_VY });
+    
+    let currentMaxVy = MAX_VY; // default 4
+    if (parachuteDeployed) {
+        if (keys.ArrowUp || keys.w) {
+            currentMaxVy = 1.0;       // Fall even slower
+            pandaBody.frictionAir = 0.2; // Increase drag
+        } else if (keys.ArrowDown || keys.s) {
+            currentMaxVy = 13.0;      // Fall much faster
+            pandaBody.frictionAir = 0.01;
+        } else {
+            currentMaxVy = MAX_VY;    // Normal
+            pandaBody.frictionAir = 0.06;
+        }
+    } else {
+        currentMaxVy = 20.0;          // Freefall max velocity
+    }
+    
+    if (vel.y > currentMaxVy) Body.setVelocity(pandaBody, { x: pandaBody.velocity.x, y: currentMaxVy });
 
     // Horizontal screen wrap
     const px = pandaBody.position;
@@ -555,15 +572,36 @@ function drawPanda(x, y, vx, landed, hasParachute) {
     ctx.rotate(tilt);
 
     if (!landed && hasParachute) {
+        let canopyScaleX = 1;
+        let canopyScaleY = 1;
+        let canopyYOffset = 0;
+        
+        if (keys.ArrowUp || keys.w) {
+            canopyScaleX = 1.3;
+            canopyScaleY = 1.3;
+            canopyYOffset = -15; // Parachute catches more air, flies higher
+        } else if (keys.ArrowDown || keys.s) {
+            canopyScaleX = 0.4;
+            canopyScaleY = 0.8;
+            canopyYOffset = 25;  // Parachute collapses, pulled downwards
+        }
+        
+        const cy = -90 + canopyYOffset;
+        
+        ctx.save();
+        ctx.translate(0, cy);
+        ctx.scale(canopyScaleX, canopyScaleY);
         ctx.beginPath(); ctx.fillStyle = '#ef4444';
-        ctx.arc(0, -90, 80, Math.PI, 0); ctx.fill();
+        ctx.arc(0, 0, 80, Math.PI, 0); ctx.fill();
+        ctx.restore();
+        
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(-80, -90); ctx.lineTo(-20, 0);
-        ctx.moveTo(-40, -90); ctx.lineTo(-10, 0);
-        ctx.moveTo(  0, -90); ctx.lineTo(  0, 0);
-        ctx.moveTo( 40, -90); ctx.lineTo( 10, 0);
-        ctx.moveTo( 80, -90); ctx.lineTo( 20, 0);
+        ctx.moveTo(-80 * canopyScaleX, cy); ctx.lineTo(-20, 0);
+        ctx.moveTo(-40 * canopyScaleX, cy); ctx.lineTo(-10, 0);
+        ctx.moveTo(  0 * canopyScaleX, cy); ctx.lineTo(  0, 0);
+        ctx.moveTo( 40 * canopyScaleX, cy); ctx.lineTo( 10, 0);
+        ctx.moveTo( 80 * canopyScaleX, cy); ctx.lineTo( 20, 0);
         ctx.stroke();
     }
 
