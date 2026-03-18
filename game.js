@@ -60,13 +60,17 @@ const plane = { x: -200, y: PANDA_START_Y, vx: 400, width: 160, height: 60 };
 let engine;
 let mWorld;
 let pandaBody;
-let birdBodies = [];
+let birdBodies  = [];
+let rubyBodies  = [];
+let droneBodies = [];
 
 // ===== COLLECTIONS =====
 let clouds   = [];
 let coins    = [];
 let diamonds = [];
 let birds    = [];
+let rubies   = [];
+let drones   = [];
 
 // ===== WEB AUDIO =====
 let audioCtx;
@@ -286,6 +290,23 @@ function onCollision(event) {
                 uiScore.innerText = score;
                 playHitSound();
             }
+        } else if (other.label.startsWith('ruby_')) {
+            const idx = parseInt(other.label.split('_')[1]);
+            if (rubies[idx] && !rubies[idx].collected) {
+                rubies[idx].collected = true;
+                score += 500;
+                uiScore.innerText = score;
+                playDiamondSound();
+                World.remove(mWorld, other);
+            }
+        } else if (other.label.startsWith('drone_')) {
+            const idx = parseInt(other.label.split('_')[1]);
+            if (drones[idx] && !drones[idx].hit) {
+                drones[idx].hit = true;
+                score -= 200;
+                uiScore.innerText = score;
+                playHitSound();
+            }
         }
     }
 }
@@ -331,6 +352,30 @@ function spawnBird(index) {
     };
 }
 
+function spawnRuby(index) {
+    const x = Math.random() * (gameWidth - 200) + 100;
+    const y = PANDA_START_Y + 1500 + Math.random() * (INITIAL_ALTITUDE * WORLD_SCALE - 3000);
+    const body = Bodies.circle(x, y, 25, { isSensor: true, isStatic: true, label: `ruby_${index}` });
+    World.add(mWorld, body);
+    rubyBodies[index] = body;
+    return { x, worldY: y, size: 22, collected: false };
+}
+
+function spawnDrone(index, rubyIndex, angleOffset) {
+    const ruby = rubies[rubyIndex];
+    if (!ruby) return null;
+    
+    const orbitRadius = 110;  // Slightly reduced distance
+    const droneRadius = 22;
+    
+    const x = ruby.x + Math.cos(angleOffset) * orbitRadius;
+    const y = ruby.worldY + Math.sin(angleOffset) * orbitRadius;
+    const body = Bodies.circle(x, y, droneRadius, { isSensor: true, isStatic: true, label: `drone_${index}` });
+    World.add(mWorld, body);
+    droneBodies[index] = body;
+    return { rubyIndex, angleOffset, radius: orbitRadius, hit: false, size: droneRadius };
+}
+
 // ===== INIT / END =====
 function initGame() {
     altitude          = INITIAL_ALTITUDE;
@@ -359,6 +404,12 @@ function initGame() {
 
     birds = []; birdBodies = [];
     for (let i = 0; i < 10; i++) birds.push(spawnBird(i));
+
+    rubies = []; rubyBodies = [];
+    rubies.push(spawnRuby(0));
+    
+    drones = []; droneBodies = [];
+    for (let i = 0; i < 3; i++) drones.push(spawnDrone(i, 0, (Math.PI * 2 / 3) * i));
 
     stopMusic();
     bgmPlaybackRate = 1.0;
@@ -455,6 +506,17 @@ function update(dt) {
         const newX = bird.baseX + Math.sin(gameTime * bird.speed + bird.timeOffset) * bird.range;
         bird.x = newX;
         if (birdBodies[i]) Body.setPosition(birdBodies[i], { x: newX, y: bird.worldY });
+    });
+
+    // Orbit drones around ruby
+    drones.forEach((drone, i) => {
+        const ruby = rubies[drone.rubyIndex];
+        if (ruby) {
+            drone.angleOffset += dt * 1.2; // Orbit speed (slower)
+            const newX = ruby.x + Math.cos(drone.angleOffset) * drone.radius;
+            const newY = ruby.worldY + Math.sin(drone.angleOffset) * drone.radius;
+            if (droneBodies[i]) Body.setPosition(droneBodies[i], { x: newX, y: newY });
+        }
     });
 
     Engine.update(engine, dt * 1000);
@@ -657,6 +719,56 @@ function draw() {
         ctx.fillStyle = bird.hit ? '#f87171' : '#795548';
         ctx.beginPath(); ctx.moveTo(5, 5); ctx.lineTo(-15, 5); ctx.lineTo(-10, 30 * flapDir + 10); ctx.fill();
 
+        ctx.restore();
+    });
+
+    // Rubies
+    rubies.forEach(r => {
+        if (r.collected) return;
+        ctx.save();
+        ctx.translate(r.x, r.worldY);
+        // Draw ruby (red glowing gem)
+        ctx.fillStyle = '#f43f5e'; // rose-500
+        ctx.beginPath();
+        ctx.moveTo(0, -r.size); ctx.lineTo(r.size, 0);
+        ctx.lineTo(0, r.size * 1.5); ctx.lineTo(-r.size, 0);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fb7185';
+        ctx.beginPath();
+        ctx.moveTo(0, -r.size * 0.7); ctx.lineTo(r.size * 0.5, 0);
+        ctx.lineTo(0, r.size * 0.9);  ctx.lineTo(-r.size * 0.5, 0);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffe4e6';
+        ctx.beginPath();
+        ctx.moveTo(0, -r.size * 0.6); ctx.lineTo(r.size * 0.3, 0); ctx.lineTo(0, 0);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+    });
+
+    // Drones
+    drones.forEach((drone, i) => {
+        const ruby = rubies[drone.rubyIndex];
+        if (!ruby) return;
+        
+        ctx.save();
+        if (droneBodies[i]) {
+            ctx.translate(droneBodies[i].position.x, droneBodies[i].position.y);
+        } else {
+            // Fallback if no body (shouldn't happen)
+            const dx = ruby.x + Math.cos(drone.angleOffset) * drone.radius;
+            const dy = ruby.worldY + Math.sin(drone.angleOffset) * drone.radius;
+            ctx.translate(dx, dy);
+        }
+        
+        ctx.fillStyle = drone.hit ? '#ef4444' : '#64748b'; // red if hit, otherwise slate
+        // Drone body (metallic disc)
+        ctx.beginPath(); ctx.ellipse(0, 0, drone.size, drone.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+        // Drone dome
+        ctx.fillStyle = drone.hit ? '#ffffff' : '#94a3b8';
+        ctx.beginPath(); ctx.arc(0, -drone.size * 0.2, drone.size * 0.6, Math.PI, 0); ctx.fill();
+        // Drone light
+        ctx.fillStyle = drone.hit ? '#ffffff' : '#ef4444';
+        ctx.beginPath(); ctx.arc(0, -drone.size * 0.2, 3, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
     });
 
