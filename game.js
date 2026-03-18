@@ -9,6 +9,7 @@ const uiStartScreen    = document.getElementById('start-screen');
 const uiGameOverScreen = document.getElementById('game-over-screen');
 const uiHud            = document.getElementById('hud');
 const uiAltitude       = document.getElementById('altitude');
+const uiTime           = document.getElementById('flight-time');
 const uiScore          = document.getElementById('score');
 const btnStart         = document.getElementById('btn-start');
 const btnRestart       = document.getElementById('btn-restart');
@@ -436,13 +437,26 @@ function endGame() {
     const speed = Math.sqrt(pandaBody.velocity.x ** 2 + pandaBody.velocity.y ** 2);
     let landingScore = 0;
 
-    if (dist < 40)       { landingScore = 100; endTitle.innerText = `Bullseye! Gesamt: ${score + landingScore} Pkt`; }
-    else if (dist < 100) { landingScore = 50;  endTitle.innerText = `Gute Landung! Gesamt: ${score + landingScore} Pkt`; }
-    else if (dist < 200) { landingScore = 10;  endTitle.innerText = `Knapp vorbei! Gesamt: ${score + landingScore} Pkt`; }
-    else if (speed > 5)  {                     endTitle.innerText = `Stolper-Landung! Gesamt: ${score} Pkt`; }
-    else                 {                     endTitle.innerText = `Sichere Landung! Gesamt: ${score} Pkt`; }
+    let timeScore = 0;
+    if (gameTime < 30) {
+        timeScore = 300;
+    } else if (gameTime < 40) {
+        timeScore = 200;
+    } else if (gameTime < 50) {
+        timeScore = 100;
+    } else if (gameTime < 60) {
+        timeScore = 10;
+    }
 
-    finalScore = score + landingScore;
+    const timeStr = `Zeit: ${gameTime.toFixed(1)}s (+${timeScore})`;
+
+    if (dist < 40)       { landingScore = 100; endTitle.innerText = `Bullseye! ${timeStr} | Gesamt: ${score + landingScore + timeScore} Pkt`; }
+    else if (dist < 100) { landingScore = 50;  endTitle.innerText = `Gute Landung! ${timeStr} | Gesamt: ${score + landingScore + timeScore} Pkt`; }
+    else if (dist < 200) { landingScore = 10;  endTitle.innerText = `Knapp vorbei! ${timeStr} | Gesamt: ${score + landingScore + timeScore} Pkt`; }
+    else if (speed > 5)  {                     endTitle.innerText = `Stolper-Landung! ${timeStr} | Gesamt: ${score + timeScore} Pkt`; }
+    else                 {                     endTitle.innerText = `Sichere Landung! ${timeStr} | Gesamt: ${score + timeScore} Pkt`; }
+
+    finalScore = score + landingScore + timeScore;
 
     stopMusic();
     playLandSound();
@@ -541,9 +555,10 @@ function update(dt) {
     // Camera follows panda
     cameraY = Math.max(0, Math.min(pandaBody.position.y - 250, GROUND_Y + 200));
 
-    // Altitude
+    // Altitude and Time
     altitude = Math.max(0, (GROUND_Y - pandaBody.position.y) / WORLD_SCALE);
     uiAltitude.innerText = Math.ceil(altitude);
+    uiTime.innerText = gameTime.toFixed(1);
 
     // Music speed ramps up as altitude drops
     bgmPlaybackRate = 1.0 + 0.3 * ((INITIAL_ALTITUDE - altitude) / INITIAL_ALTITUDE);

@@ -147,13 +147,25 @@ p {
     opacity: 0;
 }
 
-.altitude-box {
+.left-hud {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.altitude-box, .time-box {
     font-size: 3rem;
     font-weight: 900;
     text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
+    font-variant-numeric: tabular-nums; /* Prevents jumping width on varying digits */
+}
+
+.time-box {
+    font-size: 2rem; /* Make time slightly smaller than altitude */
+    color: #e5e7eb;
 }
 
 .unit {
