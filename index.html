@@ -16,7 +16,30 @@
             <div id="start-screen" class="screen">
                 <div class="glass-panel">
                     <h1>PANDA<br>FLIEGT</h1>
-                    <p>Steuere den Panda mit den ← → Tasten aus 2000m Höhe sicher auf den Boden.</p>
+                    <p>Steuere den Panda mit den Tasten sicher aus 2000m Höhe auf den Boden.</p>
+                    
+                    <div class="help-section">
+                        <div class="help-col">
+                            <h3>🎮 Steuerung</h3>
+                            <ul>
+                                <li><b>← / A</b> Links</li>
+                                <li><b>→ / D</b> Rechts</li>
+                                <li><b>↑ / W</b> Schirm groß (Bremse)</li>
+                                <li><b>↓ / S</b> Schirm zu (Sturzflug)</li>
+                            </ul>
+                        </div>
+                        <div class="help-col">
+                            <h3>⭐️ Punkte & Items</h3>
+                            <ul class="item-list">
+                                <li><canvas id="icon-coin" width="20" height="20"></canvas> Münze: +10</li>
+                                <li><canvas id="icon-diamond" width="20" height="20"></canvas> Diamant: +50</li>
+                                <li><canvas id="icon-ruby" width="20" height="20"></canvas> Rubin: +500</li>
+                                <li><canvas id="icon-bird" width="20" height="20"></canvas> Vogel: -50 & Stall (5s)</li>
+                                <li><canvas id="icon-drone" width="20" height="20"></canvas> Drohne: -200 & Schock (10s)</li>
+                            </ul>
+                        </div>
+                    </div>
+
                     <button id="btn-start" class="btn">Sprung wagen</button>
                 </div>
             </div>

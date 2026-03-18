@@ -979,6 +979,66 @@ elBtnSave.addEventListener('click', () => {
     saveScore(name, finalScore);
 });
 
+// Render Help Icons once on load
+function renderHelpIcons() {
+    // Coin
+    const cCoin = document.getElementById('icon-coin');
+    if (cCoin) {
+        const cx = cCoin.getContext('2d');
+        cx.translate(10, 10);
+        cx.fillStyle = '#fbbf24'; cx.beginPath(); cx.arc(0, 0, 7, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = '#f59e0b'; cx.beginPath(); cx.arc(0, 0, 5, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = '#fbbf24'; cx.beginPath(); cx.arc(0, 0, 3, 0, Math.PI * 2); cx.fill();
+    }
+    // Diamond
+    const cDim = document.getElementById('icon-diamond');
+    if (cDim) {
+        const cx = cDim.getContext('2d');
+        cx.translate(10, 10);
+        const s = 7;
+        cx.fillStyle = '#22d3ee'; cx.beginPath(); cx.moveTo(0, -s); cx.lineTo(s, 0); cx.lineTo(0, s*1.5); cx.lineTo(-s, 0); cx.fill();
+        cx.fillStyle = '#67e8f9'; cx.beginPath(); cx.moveTo(0, -s*0.7); cx.lineTo(s*0.5, 0); cx.lineTo(0, s*0.9); cx.lineTo(-s*0.5, 0); cx.fill();
+        cx.fillStyle = '#cffafe'; cx.beginPath(); cx.moveTo(0, -s*0.6); cx.lineTo(s*0.3, 0); cx.lineTo(0, 0); cx.fill();
+    }
+    // Ruby
+    const cRuby = document.getElementById('icon-ruby');
+    if (cRuby) {
+        const cx = cRuby.getContext('2d');
+        cx.translate(10, 10);
+        const s = 7;
+        cx.fillStyle = '#f43f5e'; cx.beginPath(); cx.moveTo(0, -s); cx.lineTo(s, 0); cx.lineTo(0, s*1.5); cx.lineTo(-s, 0); cx.fill();
+        cx.fillStyle = '#fb7185'; cx.beginPath(); cx.moveTo(0, -s*0.7); cx.lineTo(s*0.5, 0); cx.lineTo(0, s*0.9); cx.lineTo(-s*0.5, 0); cx.fill();
+        cx.fillStyle = '#ffe4e6'; cx.beginPath(); cx.moveTo(0, -s*0.6); cx.lineTo(s*0.3, 0); cx.lineTo(0, 0); cx.fill();
+    }
+    // Bird
+    const cBird = document.getElementById('icon-bird');
+    if (cBird) {
+        const cx = cBird.getContext('2d');
+        cx.translate(10, 10);
+        cx.scale(0.22, 0.22);
+        cx.fillStyle = '#5c4033';
+        cx.beginPath(); cx.moveTo(-15, 0); cx.lineTo(-35, -15); cx.lineTo(-35, 15); cx.fill();
+        cx.beginPath(); cx.ellipse(0, 0, 25, 12, 0, 0, Math.PI * 2); cx.fill();
+        cx.beginPath(); cx.arc(20, -3, 10, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = '#fbbf24'; cx.beginPath(); cx.moveTo(25, -3); cx.lineTo(40, -1); cx.lineTo(25, 5); cx.fill();
+        cx.fillStyle = '#ffffff'; cx.beginPath(); cx.arc(23, -5, 3, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = '#000000'; cx.beginPath(); cx.arc(24, -5, 1.5, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = '#3e2723'; cx.beginPath(); cx.moveTo(5, -5); cx.lineTo(-10, -5); cx.lineTo(-5, -20); cx.fill();
+        cx.fillStyle = '#795548'; cx.beginPath(); cx.moveTo(5, 5); cx.lineTo(-15, 5); cx.lineTo(-10, 20); cx.fill();
+    }
+    // Drone
+    const cDrone = document.getElementById('icon-drone');
+    if (cDrone) {
+        const cx = cDrone.getContext('2d');
+        cx.translate(10, 11);
+        const size = 8;
+        cx.fillStyle = '#64748b'; cx.beginPath(); cx.ellipse(0, 0, size, size * 0.5, 0, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = '#94a3b8'; cx.beginPath(); cx.arc(0, -size * 0.2, size * 0.6, Math.PI, 0); cx.fill();
+        cx.fillStyle = '#ef4444'; cx.beginPath(); cx.arc(0, -size * 0.2, 2, 0, Math.PI * 2); cx.fill();
+    }
+}
+renderHelpIcons();
+
 elPlayerName.addEventListener('keydown', e => {
     if (e.key === 'Enter') elBtnSave.click();
 });
