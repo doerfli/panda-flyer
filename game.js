@@ -330,11 +330,18 @@ function onCollision(event) {
 
 // ===== SPAWN HELPERS =====
 function spawnCloud() {
+    const size = 40 + Math.random() * 120; // 40–160px
+    const isForeground = size > 100;       // large clouds = foreground
+    const parallaxFactor = isForeground
+        ? 1.0 + Math.random() * 0.15      // faster scroll = in front of panda
+        : 0.8 + Math.random() * 0.2;      // slower scroll = background
     return {
         x:      Math.random() * gameWidth,
         worldY: PANDA_START_Y + Math.random() * INITIAL_ALTITUDE * WORLD_SCALE,
-        size:   50  + Math.random() * 80,
-        opacity: 0.2 + Math.random() * 0.4
+        size,
+        opacity: isForeground ? 0.12 + Math.random() * 0.18 : 0.25 + Math.random() * 0.35,
+        parallaxFactor,
+        isForeground
     };
 }
 
@@ -717,13 +724,15 @@ function draw() {
     ctx.save();
     ctx.translate(0, -cameraY);
 
-    // Clouds
+    // Background clouds (behind panda)
     clouds.forEach(c => {
+        if (c.isForeground) return; // drawn later
+        const parallaxY = c.worldY + cameraY * (1 - c.parallaxFactor);
         ctx.fillStyle = `rgba(255,255,255,${c.opacity})`;
         ctx.beginPath();
-        ctx.arc(c.x, c.worldY, c.size, 0, Math.PI * 2);
-        ctx.arc(c.x + c.size * 0.8, c.worldY + c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
-        ctx.arc(c.x - c.size * 0.8, c.worldY + c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(c.x, parallaxY, c.size, 0, Math.PI * 2);
+        ctx.arc(c.x + c.size * 0.8, parallaxY + c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(c.x - c.size * 0.8, parallaxY + c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
         ctx.fill();
     });
 
@@ -879,6 +888,21 @@ function draw() {
         const effectiveParachute = parachuteDeployed && droneStunTimer <= 0;
         drawPanda(sx, sy, vxScreen, landed, effectiveParachute);
     }
+
+    // Foreground clouds (in front of panda) - drawn in screen space
+    ctx.save();
+    ctx.translate(0, -cameraY);
+    clouds.forEach(c => {
+        if (!c.isForeground) return;
+        const parallaxY = c.worldY + cameraY * (1 - c.parallaxFactor);
+        ctx.fillStyle = `rgba(255,255,255,${c.opacity})`;
+        ctx.beginPath();
+        ctx.arc(c.x, parallaxY, c.size, 0, Math.PI * 2);
+        ctx.arc(c.x + c.size * 0.8, parallaxY + c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(c.x - c.size * 0.8, parallaxY + c.size * 0.2, c.size * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.restore();
 }
 
 // ===== GAME LOOP =====
