@@ -47,6 +47,7 @@ let score             = 0;
 let gameTime          = 0;
 let parachuteDeployed = false;
 let freefallTimer     = 0;
+let droneStunTimer    = 0;
 let cameraY           = 0;
 let targetX           = 0;
 let keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false, a: false, d: false, w: false, s: false };
@@ -290,6 +291,13 @@ function onCollision(event) {
                 score -= 50;
                 uiScore.innerText = score;
                 playHitSound();
+                
+                // 5 Sekunden Zeitstrafe und extremer Fall/Seitwärts-Geschwindigkeitsverlust (Stall)
+                gameTime += 5.0;
+                Body.setVelocity(pandaBody, { 
+                    x: pandaBody.velocity.x * 0.1, 
+                    y: Math.max(0, pandaBody.velocity.y * 0.1)
+                });
             }
         } else if (other.label.startsWith('ruby_')) {
             const idx = parseInt(other.label.split('_')[1]);
@@ -307,6 +315,14 @@ function onCollision(event) {
                 score -= 200;
                 uiScore.innerText = score;
                 playHitSound();
+                
+                // 10 Sekunden Zeitstrafe und 1s freier Fall (Schock)
+                gameTime += 10.0;
+                droneStunTimer = 1.0;
+                Body.setVelocity(pandaBody, { 
+                    x: pandaBody.velocity.x * 0.1, 
+                    y: 25.0 // Instant downward slam
+                });
             }
         }
     }
@@ -384,6 +400,7 @@ function initGame() {
     gameTime          = 0;
     parachuteDeployed = false;
     freefallTimer     = 0;
+    droneStunTimer    = 0;
     cameraY           = 0;
     uiScore.innerText = score;
 
@@ -509,8 +526,10 @@ function update(dt) {
     const vel = pandaBody.velocity;
     if (Math.abs(vel.x) > MAX_VX) Body.setVelocity(pandaBody, { x: Math.sign(vel.x) * MAX_VX, y: vel.y });
     
+    if (droneStunTimer > 0) droneStunTimer -= dt;
+
     let currentMaxVy = MAX_VY; // default 4
-    if (parachuteDeployed) {
+    if (parachuteDeployed && droneStunTimer <= 0) {
         if (keys.ArrowUp || keys.w) {
             currentMaxVy = 1.0;       // Fall even slower
             pandaBody.frictionAir = 0.2; // Increase drag
@@ -522,7 +541,8 @@ function update(dt) {
             pandaBody.frictionAir = 0.06;
         }
     } else {
-        currentMaxVy = 20.0;          // Freefall max velocity
+        currentMaxVy = 40.0;          // Freefall max velocity
+        pandaBody.frictionAir = 0.001; // Extremely low drag for rapid fall
     }
     
     if (vel.y > currentMaxVy) Body.setVelocity(pandaBody, { x: pandaBody.velocity.x, y: currentMaxVy });
@@ -856,7 +876,8 @@ function draw() {
         const sy = pandaBody.position.y - cameraY;
         const vxScreen = pandaBody.velocity.x * 60; // approximate px/s for tilt calc
         const landed = altitude <= 2;
-        drawPanda(sx, sy, vxScreen, landed, parachuteDeployed);
+        const effectiveParachute = parachuteDeployed && droneStunTimer <= 0;
+        drawPanda(sx, sy, vxScreen, landed, effectiveParachute);
     }
 }
 
