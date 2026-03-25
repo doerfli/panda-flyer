@@ -1,0 +1,11 @@
+services:
+  panda-flyer:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - panda-data:/app/data   # Highscores persist across restarts
+    restart: unless-stopped
+
+volumes:
+  panda-data:

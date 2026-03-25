@@ -6,7 +6,8 @@ const app = express();
 const PORT = 3000;
 
 // ===== DATABASE SETUP =====
-const db = new Database(path.join(__dirname, 'highscores.db'));
+const DB_FILE = process.env.DB_PATH || path.join(__dirname, 'highscores.db');
+const db = new Database(DB_FILE);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS scores (

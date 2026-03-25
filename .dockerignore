@@ -1,0 +1,5 @@
+node_modules/
+highscores.db
+*.db
+.git/
+.gitignore
