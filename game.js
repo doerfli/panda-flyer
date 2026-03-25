@@ -26,6 +26,7 @@ window.addEventListener('resize', () => {
     gameHeight = window.innerHeight;
     canvas.width  = gameWidth;
     canvas.height = gameHeight;
+    updateDrawScale();
     if (currentState === STATE.MENU || currentState === STATE.GAMEOVER) draw();
 });
 
@@ -52,6 +53,10 @@ let droneStunTimer    = 0;
 let cameraY           = 0;
 let targetX           = 0;
 let keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false, a: false, d: false, w: false, s: false };
+
+let DRAW_SCALE = 1.0;
+function updateDrawScale() { DRAW_SCALE = window.innerWidth < 600 ? 0.5 : 1.0; }
+updateDrawScale();
 
 window.addEventListener('keydown', e => { if (e.key in keys) keys[e.key] = true; });
 window.addEventListener('keyup',   e => { if (e.key in keys) keys[e.key] = false; });
@@ -598,6 +603,7 @@ function update(dt) {
 function drawPlane(x, y) {
     ctx.save();
     ctx.translate(x, y);
+    ctx.scale(DRAW_SCALE, DRAW_SCALE);
     ctx.fillStyle = '#e2e8f0';
     ctx.beginPath(); ctx.ellipse(0, 0, 80, 20, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#60a5fa';
@@ -611,6 +617,7 @@ function drawPlane(x, y) {
 function drawPanda(x, y, vx, landed, hasParachute) {
     ctx.save();
     ctx.translate(x, y);
+    ctx.scale(DRAW_SCALE, DRAW_SCALE);
 
     const MAX_SPEED = 420; // px/s ~ MAX_VX * 60
     const tilt = landed ? 0 : (vx / MAX_SPEED) * 0.3;
@@ -742,12 +749,13 @@ function draw() {
     // Coins
     coins.forEach(coin => {
         if (coin.collected) return;
+        const cr = coin.radius * DRAW_SCALE;
         ctx.fillStyle = '#fbbf24';
-        ctx.beginPath(); ctx.arc(coin.x, coin.worldY, coin.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(coin.x, coin.worldY, cr, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#f59e0b';
-        ctx.beginPath(); ctx.arc(coin.x, coin.worldY, coin.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(coin.x, coin.worldY, cr * 0.7, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fbbf24';
-        ctx.beginPath(); ctx.arc(coin.x, coin.worldY, coin.radius * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(coin.x, coin.worldY, cr * 0.5, 0, Math.PI * 2); ctx.fill();
     });
 
     // Diamonds
@@ -755,6 +763,7 @@ function draw() {
         if (d.collected) return;
         ctx.save();
         ctx.translate(d.x, d.worldY);
+        ctx.scale(DRAW_SCALE, DRAW_SCALE);
         ctx.fillStyle = '#22d3ee';
         ctx.beginPath();
         ctx.moveTo(0, -d.size); ctx.lineTo(d.size, 0);
@@ -776,6 +785,7 @@ function draw() {
     birds.forEach(bird => {
         ctx.save();
         ctx.translate(bird.x, bird.worldY);
+        ctx.scale(DRAW_SCALE, DRAW_SCALE);
 
         const isFlyingRight = Math.cos(gameTime * bird.speed + bird.timeOffset) > 0;
         if (!isFlyingRight) ctx.scale(-1, 1);
@@ -812,6 +822,7 @@ function draw() {
         if (r.collected) return;
         ctx.save();
         ctx.translate(r.x, r.worldY);
+        ctx.scale(DRAW_SCALE, DRAW_SCALE);
         // Draw ruby (red glowing gem)
         ctx.fillStyle = '#f43f5e'; // rose-500
         ctx.beginPath();
@@ -844,6 +855,7 @@ function draw() {
             const dy = ruby.worldY + Math.sin(drone.angleOffset) * drone.radius;
             ctx.translate(dx, dy);
         }
+        ctx.scale(DRAW_SCALE, DRAW_SCALE);
         
         ctx.fillStyle = drone.hit ? '#ef4444' : '#64748b'; // red if hit, otherwise slate
         // Drone body (metallic disc)
