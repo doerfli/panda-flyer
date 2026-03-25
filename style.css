@@ -24,7 +24,8 @@ body {
 #game-container {
     position: relative;
     width: 100vw;
-    height: 100vh;
+    height: 100vh; /* fallback */
+    height: 100dvh; /* dynamic viewport: excludes iOS browser chrome */
 }
 
 canvas {
@@ -374,7 +375,7 @@ p {
 
 /* ===== TOUCH CONTROLS ===== */
 #touch-controls {
-    position: absolute;
+    position: fixed; /* fixed to actual visible viewport, not container */
     bottom: 0;
     left: 0;
     width: 100%;
@@ -475,4 +476,9 @@ p {
 
     .hs-table { font-size: 0.8rem; }
     .hs-table th, .hs-table td { padding: 0.3rem 0.4rem; }
+}
+
+/* Hide touch controls on desktop (mouse/trackpad) */
+@media (pointer: fine) {
+    #touch-controls { display: none !important; }
 }
