@@ -998,6 +998,26 @@ function onGameOver() {
     fetchScores();
 }
 
+// ===== START-SCREEN HIGHSCORE =====
+const elStartHsBody = document.getElementById('start-hs-body');
+
+async function fetchStartScores() {
+    try {
+        const res  = await fetch('/api/scores');
+        const rows = await res.json();
+        if (!rows.length) {
+            elStartHsBody.innerHTML = '<tr><td colspan="4" class="hs-loading">Noch keine Einträge</td></tr>';
+        } else {
+            elStartHsBody.innerHTML = rows.map(r =>
+                `<tr><td>${r.rank}</td><td>${escHtml(r.name)}</td><td>${r.score}</td><td>${r.date}</td></tr>`
+            ).join('');
+        }
+    } catch {
+        elStartHsBody.innerHTML = '<tr><td colspan="4" class="hs-loading">Server nicht erreichbar</td></tr>';
+    }
+}
+fetchStartScores();
+
 elBtnSave.addEventListener('click', () => {
     const name = elPlayerName.value.trim() || randomName();
     saveScore(name, finalScore);

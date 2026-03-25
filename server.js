@@ -24,6 +24,7 @@ const getTopScores = db.prepare(`
     score,
     strftime('%d.%m.%Y', created_at) AS date
   FROM scores
+  WHERE created_at >= datetime('now', '-7 days', 'localtime')
   ORDER BY score DESC, created_at ASC
   LIMIT 10
 `);
