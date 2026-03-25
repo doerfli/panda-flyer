@@ -14,6 +14,7 @@ const uiScore          = document.getElementById('score');
 const btnStart         = document.getElementById('btn-start');
 const btnRestart       = document.getElementById('btn-restart');
 const endTitle         = document.getElementById('end-title');
+const touchControls    = document.getElementById('touch-controls');
 
 let gameWidth  = window.innerWidth;
 let gameHeight = window.innerHeight;
@@ -444,6 +445,7 @@ function initGame() {
     uiStartScreen.classList.add('hidden');
     uiGameOverScreen.classList.add('hidden');
     uiHud.classList.add('hidden');
+    touchControls.classList.remove('hidden');
 
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
@@ -456,6 +458,7 @@ function endGame() {
     currentState = STATE.GAMEOVER;
     uiHud.classList.add('hidden');
     uiGameOverScreen.classList.remove('hidden');
+    touchControls.classList.add('hidden');
 
     const dist = Math.abs(pandaBody.position.x - targetX);
     const speed = Math.sqrt(pandaBody.velocity.x ** 2 + pandaBody.velocity.y ** 2);
@@ -1086,3 +1089,27 @@ renderHelpIcons();
 elPlayerName.addEventListener('keydown', e => {
     if (e.key === 'Enter') elBtnSave.click();
 });
+
+// ===== TOUCH CONTROLS =====
+function bindTouchBtn(id, keyName) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const press   = e => { e.preventDefault(); keys[keyName] = true;  el.classList.add('active'); };
+    const release = e => { e.preventDefault(); keys[keyName] = false; el.classList.remove('active'); };
+    el.addEventListener('pointerdown',   press);
+    el.addEventListener('pointerup',     release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('pointerleave',  release);
+    // Keep finger-tracking within button even when pointer leaves
+    el.addEventListener('pointerdown', e => el.setPointerCapture(e.pointerId));
+}
+
+bindTouchBtn('btn-touch-left',  'ArrowLeft');
+bindTouchBtn('btn-touch-right', 'ArrowRight');
+bindTouchBtn('btn-touch-up',    'ArrowUp');
+bindTouchBtn('btn-touch-down',  'ArrowDown');
+
+// Resume AudioContext on first touch (required by iOS Safari)
+document.addEventListener('touchstart', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}, { once: true });

@@ -89,6 +89,7 @@ h1 {
     margin-bottom: 1rem;
     background: linear-gradient(135deg, #fff, #9ca3af);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
@@ -363,4 +364,115 @@ p {
     text-align: center;
     color: rgba(255,255,255,0.4);
     padding: 0.75rem 0;
+}
+
+/* ===== SCREEN SCROLLING (mobile) ===== */
+.screen {
+    overflow-y: auto;
+    touch-action: pan-y;
+}
+
+/* ===== TOUCH CONTROLS ===== */
+#touch-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 1rem 1.5rem;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
+    pointer-events: auto;
+    z-index: 20;
+}
+
+#touch-controls.hidden {
+    display: none;
+}
+
+.touch-group {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.touch-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.touch-btn small {
+    font-size: 0.6rem;
+    font-weight: 600;
+    opacity: 0.75;
+    letter-spacing: 0.03em;
+}
+
+.touch-btn.touch-btn-action {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.35);
+}
+
+.touch-btn:active,
+.touch-btn.active {
+    background: rgba(74, 222, 128, 0.3);
+    border-color: var(--primary);
+    transform: scale(0.92);
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 600px) {
+    .glass-panel {
+        padding: 1.5rem 1.25rem;
+        margin: 0.5rem;
+        border-radius: 16px;
+        animation: none; /* disable float on mobile */
+    }
+
+    h1 { font-size: 2.8rem; }
+    h2 { font-size: 1.6rem; }
+    p  { font-size: 0.95rem; margin-bottom: 1.25rem; }
+
+    .help-section {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .screen {
+        justify-content: flex-start;
+        padding-top: 1rem;
+        padding-bottom: 160px; /* room for touch controls */
+    }
+
+    .altitude-box { font-size: 2.2rem; }
+    .time-box     { font-size: 1.6rem; }
+    .score-box    { font-size: 2rem; padding: 0.6rem 1rem; }
+    .unit         { font-size: 1.2rem; }
+
+    #hud { padding: 1rem; }
+
+    .game-over-panel { padding: 1.25rem; }
+
+    .hs-table { font-size: 0.8rem; }
+    .hs-table th, .hs-table td { padding: 0.3rem 0.4rem; }
 }
