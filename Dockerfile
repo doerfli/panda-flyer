@@ -1,6 +1,6 @@
 # ===== BUILD STAGE =====
 # Compile native better-sqlite3 bindings against the target platform
-FROM node:24-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 # ===== PRODUCTION STAGE =====
-FROM node:24-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
