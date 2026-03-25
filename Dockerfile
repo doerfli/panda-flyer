@@ -1,17 +1,17 @@
 # ===== BUILD STAGE =====
 # Compile native better-sqlite3 bindings against the target platform
-FROM node:22-alpine AS builder
+FROM oven/bun:alpine AS builder
 
 WORKDIR /app
 
 # Install build tools required by better-sqlite3
 RUN apk add --no-cache python3 make g++
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
 
 # ===== PRODUCTION STAGE =====
-FROM node:22-alpine AS production
+FROM oven/bun:alpine AS production
 
 WORKDIR /app
 
@@ -33,4 +33,4 @@ USER panda
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["bun", "run", "server.js"]

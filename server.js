@@ -1,5 +1,5 @@
 const express = require('express');
-const Database = require('better-sqlite3');
+const { Database } = require('bun:sqlite');
 const path = require('path');
 
 const app = express();
@@ -9,7 +9,7 @@ const PORT = 3000;
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, 'highscores.db');
 const db = new Database(DB_FILE);
 
-db.exec(`
+db.run(`
   CREATE TABLE IF NOT EXISTS scores (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     name      TEXT    NOT NULL,

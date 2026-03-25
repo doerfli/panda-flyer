@@ -7,5 +7,17 @@ services:
       - panda-data:/app/data   # Highscores persist across restarts
     restart: unless-stopped
 
+  dev:
+    image: oven/bun:alpine
+    working_dir: /app
+    command: bun --watch server.js
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app                 # Mount source for live reload
+      - panda-data:/app/data   # Highscores persist across restarts
+    environment:
+      - DB_PATH=/app/data/highscores.db
+
 volumes:
   panda-data:
